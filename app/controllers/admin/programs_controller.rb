@@ -47,6 +47,7 @@ class Admin
       program = Program.find(params[:id])
       program.destroy
       redirect_to admin_programs_path
+      do_something_else
     end
 
     private
