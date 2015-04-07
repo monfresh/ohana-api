@@ -21,7 +21,7 @@
 # In production, you should set BASE_DOMAIN to your production domain name.
 # For example, on Heroku, you can set the ENV var like this:
 # heroku config:set BASE_DOMAIN=mydomain.com -a your_heroku_app_name
-BASE_DOMAIN: lvh.me:8080
+BASE_DOMAIN: foo
 
 # If you'd like to run the API on its own subdomain, set API_SUBDOMAIN to your
 # desired subdomain name. We recommend "api". Then make sure to delete "api"
