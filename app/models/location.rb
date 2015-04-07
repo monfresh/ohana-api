@@ -1,25 +1,17 @@
 class Location < ActiveRecord::Base
-  attr_accessible :accessibility, :address, :admin_emails, :contacts,
-                  :description, :emails, :faxes, :hours, :languages,
-                  :latitude, :longitude, :mail_address, :name, :phones,
-                  :short_desc, :transportation, :urls, :address_attributes,
-                  :contacts_attributes, :faxes_attributes,
-                  :mail_address_attributes, :phones_attributes,
-                  :services_attributes, :organization_id
+  attr_accessible :accessibility, :active, :admin_emails, :alternate_name,
+                  :description, :email, :languages, :latitude,
+                  :longitude, :name, :short_desc, :transportation, :website,
+                  :virtual, :address_attributes, :mail_address_attributes,
+                  :phones_attributes, :regular_schedules_attributes,
+                  :holiday_schedules_attributes
 
   belongs_to :organization
-  accepts_nested_attributes_for :organization
 
   has_one :address, dependent: :destroy
   accepts_nested_attributes_for :address, allow_destroy: true
 
   has_many :contacts, dependent: :destroy
-  accepts_nested_attributes_for :contacts,
-                                allow_destroy: true, reject_if: :all_blank
-
-  has_many :faxes, dependent: :destroy
-  accepts_nested_attributes_for :faxes,
-                                allow_destroy: true, reject_if: :all_blank
 
   has_one :mail_address, dependent: :destroy
   accepts_nested_attributes_for :mail_address, allow_destroy: true
@@ -29,30 +21,28 @@ class Location < ActiveRecord::Base
                                 allow_destroy: true, reject_if: :all_blank
 
   has_many :services, dependent: :destroy
-  accepts_nested_attributes_for :services, allow_destroy: true
 
-  # has_many :schedules, dependent: :destroy
-  # accepts_nested_attributes_for :schedules
+  has_many :regular_schedules, dependent: :destroy
+  accepts_nested_attributes_for :regular_schedules,
+                                allow_destroy: true, reject_if: :all_blank
 
-  validates :mail_address,
-            presence: {
-              message: 'A location must have at least one address type.'
-            },
-            unless: proc { |loc| loc.address.present? }
+  has_many :holiday_schedules, dependent: :destroy
+  accepts_nested_attributes_for :holiday_schedules,
+                                allow_destroy: true, reject_if: :all_blank
 
   validates :address,
             presence: {
-              message: 'A location must have at least one address type.'
+              message: I18n.t('errors.messages.no_address')
             },
-            unless: proc { |loc| loc.mail_address.present? }
+            unless: ->(location) { location.virtual? }
 
   validates :description, :organization, :name,
-            presence: { message: "can't be blank for Location" }
+            presence: { message: I18n.t('errors.messages.blank_for_location') }
 
   ## Uncomment the line below if you want to require a short description.
   ## We recommend having a short description so that web clients can display
   ## an overview within the search results. See smc-connect.org as an example.
-  # validates :short_desc, presence: { message: "can't be blank for Location" }
+  # validates :short_desc, presence: { message: I18n.t('errors.messages.blank_for_location') }
 
   ## Uncomment the line below if you want to limit the
   ## short description's length. If you want to display a short description
@@ -63,23 +53,15 @@ class Location < ActiveRecord::Base
   ## displayed in the ohana-web-search client to suit your needs.
   # validates :short_desc, length: { maximum: 200 }
 
-  # Custom validation for values within arrays.
-  # For example, the urls field is an array that can contain multiple URLs.
-  # To be able to validate each URL in the array, we have to use a
-  # custom array validator. See app/validators/array_validator.rb
-  validates :urls, array: {
-    format: { with: %r{\Ahttps?://([^\s:@]+:[^\s:@]*@)?[A-Za-z\d\-]+(\.[A-Za-z\d\-]+)+\.?(:\d{1,5})?([\/?]\S*)?\z}i,
-              message: '%{value} is not a valid URL', allow_blank: true } }
+  validates :website, url: true, allow_blank: true
 
-  validates :emails, :admin_emails, array: {
-    format: { with: /\A([^@\s]+)@((?:(?!-)[-a-z0-9]+(?<!-)\.)+[a-z]{2,})\z/i,
-              message: '%{value} is not a valid email', allow_blank: true } }
+  validates :languages, pg_array: true
 
-  # Only call Google's geocoding service if the address has changed
-  # to avoid unnecessary requests that affect our rate limit.
+  validates :admin_emails, array: { email: true }
+
+  validates :email, email: true, allow_blank: true
+
   after_validation :geocode, if: :needs_geocoding?
-
-  after_validation :reset_coordinates, if: proc { |l| l.address.blank? }
 
   geocoded_by :full_physical_address
 
@@ -90,29 +72,16 @@ class Location < ActiveRecord::Base
   enumerize :accessibility,
             in: [:cd, :deaf_interpreter, :disabled_parking, :elevator, :ramp,
                  :restroom, :tape_braille, :tty, :wheelchair, :wheelchair_van],
-            multiple: true,
-            scope: true
+            multiple: true
 
   # List of admin emails that should have access to edit a location's info.
-  # Admin emails can be added to a location via the Admin GUI:
-  # https://github.com/codeforamerica/ohana-api-admin
+  # Admin emails can be added to a location via the Admin interface.
   serialize :admin_emails, Array
 
-  serialize :emails, Array
+  auto_strip_attributes :description, :email, :name, :short_desc,
+                        :transportation, :website
 
-  serialize :languages, Array
-  # enumerize :languages, in: [:arabic, :cantonese, :french, :german,
-  #   :mandarin, :polish, :portuguese, :russian, :spanish, :tagalog, :urdu,
-  #   :vietnamese,
-  #    ], multiple: true, scope: true
-
-  serialize :urls, Array
-
-  auto_strip_attributes :description, :hours, :name, :short_desc,
-                        :transportation
-
-  auto_strip_attributes :admin_emails, :emails, :urls,
-                        reject_blank: true, nullify: false
+  auto_strip_attributes :admin_emails, reject_blank: true, nullify: false
 
   extend FriendlyId
   friendly_id :slug_candidates, use: [:history]
@@ -128,7 +97,7 @@ class Location < ActiveRecord::Base
   end
 
   def address_street
-    address.street if address.present?
+    address.address_1 if address.present?
   end
 
   def mail_address_city
@@ -137,20 +106,16 @@ class Location < ActiveRecord::Base
 
   def full_physical_address
     return unless address.present?
-    "#{address.street}, #{address.city}, #{address.state} #{address.zip}"
-  end
-
-  def coordinates
-    [longitude, latitude] if longitude.present? && latitude.present?
-  end
-
-  def reset_coordinates
-    self.latitude = nil
-    self.longitude = nil
+    "#{address.address_1}, #{address.city}, #{address.state_province} #{address.postal_code}"
   end
 
   def needs_geocoding?
-    address.changed? || latitude.nil? || longitude.nil? if address.present?
+    return false if address.blank? || new_record_with_coordinates?
+    address.changed?
+  end
+
+  def new_record_with_coordinates?
+    new_record? && latitude.present? && longitude.present?
   end
 
   # See app/models/concerns/search.rb

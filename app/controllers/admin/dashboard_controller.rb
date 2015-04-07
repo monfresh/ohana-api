@@ -3,7 +3,8 @@ class Admin
     layout 'admin'
 
     def index
-      @admin = current_admin
+      redirect_to new_session_path(:admin) unless admin_signed_in?
+      @orgs = policy_scope(Organization) if current_admin
     end
   end
 end

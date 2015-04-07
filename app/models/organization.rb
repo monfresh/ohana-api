@@ -1,43 +1,43 @@
 class Organization < ActiveRecord::Base
   default_scope { order('id DESC') }
 
-  attr_accessible :name, :urls
+  attr_accessible :accreditations, :alternate_name, :date_incorporated,
+                  :description, :email, :funding_sources, :legal_status,
+                  :licenses, :name, :tax_id, :tax_status, :website,
+                  :phones_attributes
 
   has_many :locations, dependent: :destroy
-  # accepts_nested_attributes_for :locations
+  has_many :programs, dependent: :destroy
+  has_many :contacts, dependent: :destroy
 
-  validates :name, presence: { message: "can't be blank for Organization" }
+  has_many :phones, dependent: :destroy
+  accepts_nested_attributes_for :phones,
+                                allow_destroy: true, reject_if: :all_blank
 
-  # Custom validation for values within arrays.
-  # For example, the urls field is an array that can contain multiple URLs.
-  # To be able to validate each URL in the array, we have to use a
-  # custom array validator. See app/validators/array_validator.rb
-  validates :urls, array: {
-    format: { with: %r{\Ahttps?://([^\s:@]+:[^\s:@]*@)?[A-Za-z\d\-]+(\.[A-Za-z\d\-]+)+\.?(:\d{1,5})?([\/?]\S*)?\z}i,
-              message: '%{value} is not a valid URL', allow_blank: true } }
+  validates :name,
+            presence: { message: I18n.t('errors.messages.blank_for_org') },
+            uniqueness: { case_sensitive: false }
 
-  serialize :urls, Array
+  validates :description,
+            presence: { message: I18n.t('errors.messages.blank_for_org') }
 
-  auto_strip_attributes :name
-  auto_strip_attributes :urls, reject_blank: true, nullify: false
+  validates :email, email: true, allow_blank: true
+  validates :website, url: true, allow_blank: true
+  validates :date_incorporated, date: true
+
+  validates :accreditations, :funding_sources, :licenses, pg_array: true
+
+  auto_strip_attributes :alternate_name, :description, :email, :legal_status,
+                        :name, :tax_id, :tax_status, :website
+
+  def self.with_locations(ids)
+    joins(:locations).where('locations.id IN (?)', ids).uniq
+  end
 
   extend FriendlyId
-  friendly_id :slug_candidates, use: [:history]
+  friendly_id :name, use: [:history]
 
-  # Try building a slug based on the following fields in
-  # increasing order of specificity.
-  def slug_candidates
-    [
-      :name,
-      [:name, :domain_name]
-    ]
-  end
-
-  def domain_name
-    URI.parse(urls.first).host.gsub(/^www\./, '') if urls.present?
-  end
-
-  after_save :touch_locations
+  after_save :touch_locations, if: :name_changed?
 
   private
 

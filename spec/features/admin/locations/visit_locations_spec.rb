@@ -15,18 +15,6 @@ feature 'Locations page' do
         to have_content 'You need to sign in or sign up before continuing.'
     end
 
-    it 'includes a link to the sign in page in the navigation' do
-      within '.navbar' do
-        expect(page).to have_link 'Sign in', href: new_admin_session_path
-      end
-    end
-
-    it 'includes a link to the sign up page in the navigation' do
-      within '.navbar' do
-        expect(page).to have_link 'Sign up', href: new_admin_registration_path
-      end
-    end
-
     it 'does not include a link to the Home page in the navigation' do
       within '.navbar' do
         expect(page).not_to have_link 'Home', href: root_path
@@ -87,19 +75,21 @@ feature 'Locations page' do
 
     it 'displays the name of the logged in admin in the navigation' do
       within '.navbar' do
-        expect(page).to have_content "Logged in as #{@admin.name}"
+        expect(page).to have_content "Hi, #{@admin.name}"
       end
     end
 
-    it 'includes a link to Your locations in the navigation' do
+    it 'includes a link to locations in the navigation' do
       within '.navbar' do
-        expect(page).to have_link 'Your locations', href: admin_locations_path
+        expect(page).to have_link 'Locations', href: admin_locations_path
       end
     end
   end
 
   context 'when signed in as super admin' do
     before :each do
+      @location = create(:location)
+      create(:location_for_org_admin)
       login_super_admin
       visit '/admin/locations'
     end
@@ -109,12 +99,19 @@ feature 'Locations page' do
     end
 
     it 'shows all locations' do
-      create(:location)
-      create(:location_for_org_admin)
-      visit '/admin/locations'
       expect(page).to have_link 'VRS Services'
       expect(page).to have_link 'Samaritan House'
       expect(page).not_to have_content 'Parent Agency locations'
+    end
+
+    it 'takes you to the right location when clicked' do
+      click_link 'VRS Services'
+      expect(current_path).to eq edit_admin_location_path(@location)
+    end
+
+    it 'sorts locations alphabetically by name' do
+      expect(page.all('a')[8][:href]).
+        to eq '/admin/locations/samaritan-house/edit'
     end
   end
 end

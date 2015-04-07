@@ -16,9 +16,10 @@ Bundler.require(*Rails.groups)
 
 module OhanaApi
   class Application < Rails::Application
+    config.autoload_paths << Rails.root.join('lib')
+
     # don't generate RSpec tests for views and helpers
     config.generators do |g|
-
       g.test_framework :rspec, fixture: true
       g.fixture_replacement :factory_girl, dir: 'spec/factories'
 
@@ -44,8 +45,20 @@ module OhanaApi
     config.middleware.use Rack::Cors do
       allow do
         origins '*'
-        resource %r{/locations|organizations|search/*}, headers: :any, methods: [:get, :put, :patch, :post, :delete]
+        resource %r{/locations|organizations|search/*},
+                 headers: :any,
+                 methods: [:get, :put, :patch, :post, :delete],
+                 expose: ['Etag', 'Last-Modified', 'Link', 'X-Total-Count']
       end
     end
+
+    # This is required to be able to pass in an empty array as a JSON parameter
+    # when updating a Postgres array field. Otherwise, Rails will convert the
+    # empty array to `nil`. Search for "deep munge" on the rails/rails GitHub
+    # repo for more details.
+    config.action_dispatch.perform_deep_munge = false
+
+    # Do not swallow errors in after_commit/after_rollback callbacks.
+    config.active_record.raise_in_transactional_callbacks = true
   end
 end

@@ -5,6 +5,9 @@ set -e
 echo "===> Bundling..."
 bundle install
 
-script/setup_db
+if [ ! -f config/application.yml ]; then
+  echo 'Setting default environment variables...'
+  cp config/application.example.yml config/application.yml
+fi
 
-script/users
+script/setup_db

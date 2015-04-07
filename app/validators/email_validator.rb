@@ -1,5 +1,9 @@
-class EmailValidator < ActiveModel::EachValidator
+class EmailValidator < RegexValidator
   def validate_each(record, attribute, value)
-    record.errors[attribute] << (options[:message] || "#{value} is not a valid email") unless value =~ /.+@.+\..+/i
+    default_message = "#{value} #{I18n.t('errors.messages.invalid_email')}"
+
+    regex =  /\A([^@\s]+)@((?:(?!-)[-a-z0-9]+(?<!-)\.)+[a-z]{2,})\z/i
+
+    regex_validate_each(regex, default_message, record, attribute, value)
   end
 end

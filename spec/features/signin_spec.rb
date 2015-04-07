@@ -13,7 +13,7 @@ feature 'Signing in' do
     end
 
     it 'greets the admin by their name' do
-      expect(page).to have_content 'Welcome back Test User'
+      expect(page).to have_content 'Welcome back, Test User'
     end
 
     it 'displays a success message' do
@@ -29,7 +29,7 @@ feature 'Signing in' do
   scenario 'with an unconfirmed user' do
     unconfirmed_user = FactoryGirl.create(:unconfirmed_user)
     sign_in(unconfirmed_user.email, unconfirmed_user.password)
-    expect(page)
-      .to have_content 'You have to confirm your account before continuing.'
+    expect(page).
+      to have_content 'You have to confirm your account before continuing.'
   end
 end

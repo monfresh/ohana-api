@@ -1,14 +1,14 @@
 source 'https://rubygems.org'
 
-ruby '2.1.1'
-gem 'rails', '~> 4.1.1'
+ruby '2.2.1'
+gem 'rails', '~> 4.2'
 
 gem 'pg'
 
-gem 'sass-rails',   '~> 4.0.3'
-gem 'coffee-rails', '~> 4.0.0'
+gem 'sass-rails',   '~> 5.0'
+gem 'coffee-rails', '~> 4.1.0'
 gem 'uglifier', '>= 1.3.0'
-gem 'bootstrap-sass'
+gem 'bootstrap-sass', '~> 3.3.0'
 
 # Rails 4
 gem 'protected_attributes'
@@ -16,11 +16,12 @@ gem 'protected_attributes'
 # gem 'rails-perftest'
 
 # Front end
-gem 'jquery-rails'
-gem 'haml-rails', '~> 0.5.3'
+gem 'jquery-rails', '~> 4.0'
+gem 'haml-rails'
+gem 'select2-rails'
 
 # Server for deployment
-gem 'passenger'
+gem 'puma'
 
 # Geocoding
 gem 'geocoder'
@@ -32,18 +33,17 @@ gem 'rack-cors', require: 'rack/cors'
 gem 'kaminari'
 gem 'active_model_serializers', '~> 0.8.0'
 
-# Production Monitoring
-gem 'newrelic_rpm'
-gem 'rack-timeout'
-
 # Authentication
-gem 'devise'
+gem 'devise', '~> 3.4'
+
+# Authorization
+gem 'pundit'
 
 gem 'auto_strip_attributes', '~> 2.0'
 gem 'enumerize'
 
 # App config and ENV variables for heroku
-gem 'figaro'
+gem 'figaro', '~> 1.0'
 
 # Search
 gem 'pg_search'
@@ -51,15 +51,21 @@ gem 'pg_search'
 # Nested categories for OpenEligibility
 gem 'ancestry'
 
-gem 'friendly_id', '~> 5.0.3'
+gem 'friendly_id', '~> 5.0'
+# Caching
+gem 'rack-cache'
+gem 'dalli'
+gem 'kgio'
+gem 'memcachier'
 
-group :production, :staging do
+group :production do
   # Heroku recommended
   gem 'rails_12factor'
 end
 
 group :test, :development do
-  gem 'rspec-rails', '~> 3.0.0'
+  gem 'rspec-rails', '~> 3.1'
+  gem 'rspec-its'
   gem 'factory_girl_rails', '>= 4.2.0'
   gem 'bullet'
 end
@@ -71,6 +77,7 @@ group :test do
   gem 'shoulda-matchers', require: false
   gem 'coveralls', require: false
   gem 'rubocop'
+  gem 'haml-lint'
 end
 
 group :development do
@@ -79,5 +86,5 @@ group :development do
   gem 'binding_of_caller', '>= 0.7.1', platforms: [:mri_19, :rbx]
   gem 'spring'
   gem 'spring-commands-rspec'
-  gem 'listen', '~> 1.0'
+  gem 'spring-watcher-listen'
 end

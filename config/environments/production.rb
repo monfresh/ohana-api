@@ -3,7 +3,7 @@ Rails.application.configure do
 
   # This setting enables the use of subdomains on Heroku.
   # See config/settings.yml for more details.
-  config.action_dispatch.tld_length = SETTINGS[:tld_length]
+  config.action_dispatch.tld_length = ENV['TLD_LENGTH'].to_i
 
   # Code is not reloaded between requests.
   config.cache_classes = true
@@ -15,16 +15,7 @@ Rails.application.configure do
   config.eager_load = true
 
   # Full error reports are disabled and caching is turned on.
-  config.consider_all_requests_local       = false
-  config.action_controller.perform_caching = true
-
-  # Enable Rack::Cache to put a simple HTTP cache in front of your application
-  # Add `rack-cache` to your Gemfile before enabling this.
-  # For large-scale production use, consider using a caching reverse proxy like nginx, varnish or squid.
-  # config.action_dispatch.rack_cache = true
-
-  # Disable Rails's static asset server (Apache or nginx will already do this).
-  config.serve_static_assets = false
+  config.consider_all_requests_local = false
 
   # Compress JavaScripts and CSS.
   config.assets.js_compressor  = :uglifier
@@ -33,19 +24,17 @@ Rails.application.configure do
   # Do not fallback to assets pipeline if a precompiled asset is missed.
   config.assets.compile = false
 
-  # Generate digests for assets URLs.
-  config.assets.digest = true
-
   # `config.assets.version` and `config.assets.precompile` have moved to config/initializers/assets.rb
 
   # Specifies the header that your server uses for sending files.
-  # config.action_dispatch.x_sendfile_header = "X-Sendfile" # for apache
-  # config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect' # for nginx
+  # config.action_dispatch.x_sendfile_header = 'X-Sendfile' # for Apache
+  # config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect' # for NGINX
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  # config.force_ssl = true
+  config.force_ssl = (ENV['ENABLE_HTTPS'] == 'yes')
 
-  # Set to :debug to see everything in the log.
+  # Use the info log level to ensure that sensitive information
+  # in SQL statements is not saved.
   config.log_level = :info
 
   # Prepend all log lines with the following tags.
@@ -54,11 +43,42 @@ Rails.application.configure do
   # Use a different logger for distributed setups.
   # config.logger = ActiveSupport::TaggedLogging.new(SyslogLogger.new)
 
-  # Use a different cache store in production.
-  # config.cache_store = :mem_cache_store
+  # --------------------------------------------------------------------------
+  # CACHING SETUP FOR RACK:CACHE AND MEMCACHIER ON HEROKU
+  # https://devcenter.heroku.com/articles/rack-cache-memcached-rails31
+  # ------------------------------------------------------------------
+
+  config.serve_static_files = true
+
+  # Asset digests allow you to set far-future HTTP expiration dates on all assets,
+  # yet still be able to expire them through the digest params.
+  config.assets.digest = true
+
+  config.action_controller.perform_caching = true
+
+  config.cache_store = :dalli_store
+  client = Dalli::Client.new((ENV['MEMCACHIER_SERVERS'] || '').split(','),
+                             username: ENV['MEMCACHIER_USERNAME'],
+                             password: ENV['MEMCACHIER_PASSWORD'],
+                             failover: true,
+                             socket_timeout: 1.5,
+                             socket_failure_delay: 0.2,
+                             value_max_bytes: 10_485_760)
+
+  # Enable Rack::Cache to put a simple HTTP cache in front of your application.
+  # Add `rack-cache` to your Gemfile before enabling this.
+  # For large-scale production use, consider using a caching reverse proxy like
+  # NGINX, varnish or squid.
+  config.action_dispatch.rack_cache = {
+    metastore:   client,
+    entitystore: client,
+    verbose: false
+  }
+  config.static_cache_control = 'public, max-age=2592000'
+  # --------------------------------------------------------------------------
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
-  # config.action_controller.asset_host = "http://assets.example.com"
+  # config.action_controller.asset_host = 'http://assets.example.com'
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
@@ -84,9 +104,6 @@ Rails.application.configure do
 
   # Send deprecation notices to registered listeners.
   config.active_support.deprecation = :notify
-
-  # Disable automatic flushing of the log to improve performance.
-  # config.autoflush_log = false
 
   # Use default logging formatter so that PID and timestamp are not suppressed.
   config.log_formatter = ::Logger::Formatter.new

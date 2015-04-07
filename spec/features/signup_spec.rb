@@ -31,4 +31,12 @@ feature 'Signing up' do
     sign_up('Moncef', 'moncef@foo.com', 'ohanatest', 'ohana')
     expect(page).to have_content "Password confirmation doesn't match Password"
   end
+
+  scenario 'with custom mailer' do
+    reset_email
+    sign_up('Moncef', 'moncef@foo.com', 'ohanatest', 'ohanatest')
+    expect(first_email.body).to include('developer')
+    expect(first_email.body).to include('documentation')
+    expect(first_email.body).to include('http://codeforamerica.github.io/ohana-api-docs/')
+  end
 end

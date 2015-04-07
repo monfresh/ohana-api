@@ -1,21 +1,20 @@
 - if admin_signed_in?
   %p
-    Welcome back, #{@admin.name}!
-  %p
-    Click the buttons below to manage organizations and locations.
+    Welcome back, #{current_admin.name}!
   %p
     = link_to 'Organizations', admin_organizations_path, class: 'btn btn-primary'
   %p
     = link_to 'Locations', admin_locations_path, class: 'btn btn-primary'
+  %p
+    = link_to 'Services', admin_services_path, class: 'btn btn-primary'
+  %p
+    = link_to 'Programs', admin_programs_path, class: 'btn btn-primary'
 
   - if current_admin.super_admin?
     %p
       = link_to 'Add a new organization', new_admin_organization_path, class: 'btn btn-primary'
+  - if @orgs.present?
     %p
       = link_to 'Add a new location', new_admin_location_path, class: 'btn btn-primary'
-- else
-  %p
-    = t("titles.welcome", :brand => t("titles.brand"))
-  %p
-    To get started, please #{link_to "sign in", new_admin_session_path}, or #{link_to "sign up", new_admin_registration_path} for an account. When you sign up, please make sure to use your work email address.
-
+    %p
+      = link_to 'Add a new program', new_admin_program_path, class: 'btn btn-primary'

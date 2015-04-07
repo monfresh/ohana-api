@@ -1,11 +1,19 @@
-# This file is copied to spec/ when you run 'rails generate rspec:install'
-require 'coveralls'
-Coveralls.wear!('rails')
-
 ENV['RAILS_ENV'] ||= 'test'
+
+if ENV['TRAVIS']
+  require 'coveralls'
+  Coveralls.wear!('rails')
+
+  SimpleCov.start do
+    add_filter '.bundle'
+    add_filter 'spec'
+  end
+end
+
 require 'spec_helper'
 require File.expand_path('../../config/environment', __FILE__)
 require 'rspec/rails'
+require 'rspec/its'
 require 'shoulda/matchers'
 
 require 'capybara/poltergeist'
@@ -30,8 +38,12 @@ RSpec.configure do |config|
   config.include FactoryGirl::Syntax::Methods
   config.include Features::SessionHelpers, type: :feature
   config.include Features::FormHelpers, type: :feature
+  config.include Features::ScheduleHelpers, type: :feature
+  config.include Features::PhoneHelpers, type: :feature
+  config.include Features::ContactHelpers, type: :feature
   config.include Requests::RequestHelpers, type: :request
   config.include DefaultHeaders, type: :request
+  config.include MailerMacros
 
   # rspec-rails 3+ will no longer automatically infer an example group's spec
   # type from the file location. You can explicitly opt-in to this feature by

@@ -15,27 +15,9 @@ feature 'Organizations page' do
         to have_content 'You need to sign in or sign up before continuing.'
     end
 
-    it 'includes a link to the sign in page in the navigation' do
+    it 'does not include a link to organizations in the navigation' do
       within '.navbar' do
-        expect(page).to have_link 'Sign in', href: new_admin_session_path
-      end
-    end
-
-    it 'includes a link to the sign up page in the navigation' do
-      within '.navbar' do
-        expect(page).to have_link 'Sign up', href: new_admin_registration_path
-      end
-    end
-
-    it 'does not include a link to the Home page in the navigation' do
-      within '.navbar' do
-        expect(page).not_to have_link 'Home', href: root_path
-      end
-    end
-
-    it 'does not include a link to Your organizations in the navigation' do
-      within '.navbar' do
-        expect(page).not_to have_link 'Your organizations', href: admin_organizations_path
+        expect(page).not_to have_link 'Organizations', href: admin_organizations_path
       end
     end
   end
@@ -57,50 +39,14 @@ feature 'Organizations page' do
       create(:location_for_org_admin)
       visit '/admin/organizations'
       expect(page).not_to have_link 'Food Stamps'
-      expect(page).to have_link 'Parent Agency'
-    end
-
-    it 'does not include a link to the sign up page in the navigation' do
-      within '.navbar' do
-        expect(page).not_to have_link 'Sign up'
-      end
-    end
-
-    it 'does not include a link to the sign in page in the navigation' do
-      within '.navbar' do
-        expect(page).not_to have_link 'Sign in'
-      end
-    end
-
-    it 'includes a link to sign out in the navigation' do
-      within '.navbar' do
-        expect(page).
-          to have_link 'Sign out', href: destroy_admin_session_path
-      end
-    end
-
-    it 'includes a link to the Edit Account page in the navigation' do
-      within '.navbar' do
-        expect(page).
-          to have_link 'Edit account', href: edit_admin_registration_path
-      end
-    end
-
-    it 'displays the name of the logged in admin in the navigation' do
-      within '.navbar' do
-        expect(page).to have_content "Logged in as #{@admin.name}"
-      end
-    end
-
-    it 'includes a link to Your organizations in the navigation' do
-      within '.navbar' do
-        expect(page).to have_link 'Your organizations', href: admin_organizations_path
-      end
+      expect(page).to have_link 'Far Org'
     end
   end
 
   context 'when signed in as super admin' do
     before :each do
+      create(:location_for_org_admin)
+      @loc = create(:location)
       login_super_admin
       visit '/admin/organizations'
     end
@@ -110,11 +56,19 @@ feature 'Organizations page' do
     end
 
     it 'shows all organizations' do
-      create(:nearby_loc)
-      create(:location_for_org_admin)
-      visit '/admin/organizations'
-      expect(page).to have_link 'Food Stamps'
       expect(page).to have_link 'Parent Agency'
+      expect(page).to have_link 'Far Org'
+    end
+
+    it 'takes you to the right organization when clicked' do
+      click_link 'Parent Agency'
+      expect(current_path).
+        to eq edit_admin_organization_path(@loc.organization)
+    end
+
+    it 'sorts organizations alphabetically by name' do
+      expect(page.all('a')[8][:href]).
+        to eq '/admin/organizations/far-org/edit'
     end
   end
 end

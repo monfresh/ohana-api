@@ -1,22 +1,23 @@
 class MailAddress < ActiveRecord::Base
-  attr_accessible :attention, :city, :state, :street, :zip
+  attr_accessible :attention, :city, :state_province, :address_1, :address_2,
+                  :postal_code, :country
 
   belongs_to :location, touch: true
 
-  validates :street,
+  validates :address_1,
             :city,
-            :state,
-            :zip,
-            presence: { message: "can't be blank for Mail Address" }
+            :state_province,
+            :postal_code,
+            :country,
+            :location,
+            presence: { message: I18n.t('errors.messages.blank_for_mail_address') }
 
-  validates :state,
-            length: {
-              maximum: 2,
-              minimum: 2,
-              message: 'Please enter a valid 2-letter state abbreviation'
-            }
+  validates :state_province, length: { maximum: 2, minimum: 2 }
 
-  validates :zip, zip: true
+  validates :country, length: { maximum: 2, minimum: 2 }
 
-  auto_strip_attributes :attention, :street, :city, :state, :zip, squish: true
+  validates :postal_code, zip: true
+
+  auto_strip_attributes :attention, :address_1, :address_2, :city, :state_province,
+                        :postal_code, :country, squish: true
 end
